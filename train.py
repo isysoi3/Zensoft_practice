@@ -264,14 +264,6 @@ def main(_):
                 tf.logging.info('\nFile %s\nPredicted %s\nShould be %s' %
                                 (file, actual, expected))
 
-                audio = input_data.load_wav_file(file)
-                audio_summary = tf.summary.audio(file + ' actual', audio, 2)
-                with tf.Session() as sess:
-                    writer = tf.summary.FileWriter('graphs', sess.graph)
-                    audio_summary_value = sess.run(audio_summary)
-                    writer.add_summary(summary=audio_summary_value)
-                    writer.close()
-
         validation_writer.add_summary(validation_summary, training_step)
         batch_size = min(FLAGS.batch_size, set_size - i)
         total_accuracy += (validation_accuracy * batch_size) / set_size
