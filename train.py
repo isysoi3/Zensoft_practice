@@ -259,8 +259,15 @@ def main(_):
         else:
           total_conf_matrix += conf_matrix
       tf.logging.info('Confusion Matrix:\n %s' % (total_conf_matrix))
+      recalls = []
+      precisions = []
+      for k in range(0, len(total_conf_matrix)):
+          precisions.append(total_conf_matrix[k, k] / sum(total_conf_matrix[:, k]))
+          recalls.append(total_conf_matrix[k, k] / sum(total_conf_matrix[k, :]))
       tf.logging.info('Step %d: Validation accuracy = %.1f%% (N=%d)' %
                       (training_step, total_accuracy * 100, set_size))
+      tf.logging.info('Step %d: Validation recall:\n %s)' % (" ".join([str(x) for x in recalls])))
+      tf.logging.info('Step %d: Validation precision:\n %s)' % (" ".join([str(x) for x in precisions])))
 
     # Save the model checkpoint periodically.
     if (training_step % FLAGS.save_step_interval == 0 or
