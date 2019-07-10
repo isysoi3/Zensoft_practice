@@ -326,6 +326,7 @@ class AudioProcessor(object):
       else:
         self.word_to_index[word] = UNKNOWN_WORD_INDEX
     self.word_to_index[SILENCE_LABEL] = SILENCE_INDEX
+    self.index_to_word = {y : x for x, y in self.word_to_index.items()}
 
   def prepare_background_data(self):
     """Searches a folder for background noise audio, and loads it into memory.
@@ -537,6 +538,7 @@ class AudioProcessor(object):
     # Data and labels will be populated and returned.
     data = np.zeros((sample_count, model_settings['fingerprint_size']))
     labels = np.zeros(sample_count)
+    files = []
     desired_samples = model_settings['desired_samples']
     use_background = self.background_data and (mode == 'training')
     pick_deterministically = (mode != 'training')
@@ -602,7 +604,8 @@ class AudioProcessor(object):
       data[i - offset, :] = data_tensor.flatten()
       label_index = self.word_to_index[sample['label']]
       labels[i - offset] = label_index
-    return data, labels
+      files.append(sample['file'])
+    return data, labels, files
 
   def get_features_for_wav(self, wav_filename, model_settings, sess):
     """Applies the feature transformation process to the input_wav.

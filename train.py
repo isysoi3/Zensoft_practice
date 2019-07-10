@@ -212,7 +212,7 @@ def main(_):
         learning_rate_value = learning_rates_list[i]
         break
     # Pull the audio samples we'll use for training.
-    train_fingerprints, train_ground_truth = audio_processor.get_data(
+    train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
         FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
         FLAGS.background_volume, time_shift_samples, 'training', sess)
     # Run the graph with this batch of training data.
@@ -240,18 +240,38 @@ def main(_):
       total_accuracy = 0
       total_conf_matrix = None
       for i in xrange(0, set_size, FLAGS.batch_size):
-        validation_fingerprints, validation_ground_truth = (
+        validation_fingerprints, validation_ground_truth, files = (
             audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0,
                                      0.0, 0, 'validation', sess))
         # Run a validation step and capture training summaries for TensorBoard
         # with the `merged` op.
-        validation_summary, validation_accuracy, conf_matrix = sess.run(
-            [merged_summaries, evaluation_step, confusion_matrix],
+        validation_summary, validation_accuracy, conf_matrix, predictions = sess.run(
+            [merged_summaries, evaluation_step, confusion_matrix, predicted_indices],
             feed_dict={
                 fingerprint_input: validation_fingerprints,
                 ground_truth_input: validation_ground_truth,
                 dropout_prob: 1.0
             })
+        if validation_accuracy >= 0.7:
+            for j in range(0, len(predictions)):
+                pred = int(predictions[j])
+                label = int(validation_ground_truth[j])
+                if pred == label:
+                    continue
+                expected = audio_processor.index_to_word[label]
+                actual = audio_processor.index_to_word[pred]
+                file = files[j]
+                tf.logging.info('\nFile %s\nPredicted %s\nShould be %s' %
+                                (file, actual, expected))
+
+                audio = input_data.load_wav_file(file)
+                audio_summary = tf.summary.audio(file + ' actual', audio, 2)
+                with tf.Session() as sess:
+                    writer = tf.summary.FileWriter('graphs', sess.graph)
+                    audio_summary_value = sess.run(audio_summary)
+                    writer.add_summary(summary=audio_summary_value)
+                    writer.close()
+
         validation_writer.add_summary(validation_summary, training_step)
         batch_size = min(FLAGS.batch_size, set_size - i)
         total_accuracy += (validation_accuracy * batch_size) / set_size
@@ -283,7 +303,7 @@ def main(_):
   total_accuracy = 0
   total_conf_matrix = None
   for i in xrange(0, set_size, FLAGS.batch_size):
-    test_fingerprints, test_ground_truth = audio_processor.get_data(
+    test_fingerprints, test_ground_truth, _ = audio_processor.get_data(
         FLAGS.batch_size, i, model_settings, 0.0, 0.0, 0, 'testing', sess)
     test_accuracy, conf_matrix = sess.run(
         [evaluation_step, confusion_matrix],
