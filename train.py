@@ -264,10 +264,10 @@ def main(_):
       for k in range(0, len(total_conf_matrix)):
           precisions.append(total_conf_matrix[k, k] / sum(total_conf_matrix[:, k]))
           recalls.append(total_conf_matrix[k, k] / sum(total_conf_matrix[k, :]))
-      tf.logging.info('Step %d: Validation accuracy = %.1f%% (N=%d)' %
+      f1 = [2 * ((r*p)/(r+p)) for r, p in zip(recalls, precisions)]
+      tf.logging.info('Step %d:\n Validation accuracy = %.1f%% (N=%d)' %
                       (training_step, total_accuracy * 100, set_size))
-      tf.logging.info('Step %d: Validation recall:\n %s)' % (training_step, recalls))
-      tf.logging.info('Step %d: Validation precision:\n %s)' % (training_step, precisions))
+      tf.logging.info('Validation recall: %s \nValidation precision: %s \nValidation f1: %s' % (recalls, precisions, f1))
 
     # Save the model checkpoint periodically.
     if (training_step % FLAGS.save_step_interval == 0 or
